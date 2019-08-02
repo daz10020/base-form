@@ -17,157 +17,144 @@
   </el-select>
 </template>
 <script>
-import { formItemProps } from './props'
-import httpService from '../../utils/httpService'
-import { parsePath } from '../../utils/common'
+  import { formItemProps } from './props'
+  import httpService from '../../utils/httpService'
 
-export default {
-  name: 'Remoteselect',
-  props: {
-    ...formItemProps,
-    relativeFilter: {
-      type: Object,
-      default: () => ({})
-    },
-    filterProps: {
-      type: Array,
-      default: () => ([])
-    },
-    paramProps: {
-      type: Array,
-      default: () => ([])
-    },
-    filterVals: {
-      type: Object,
-      default: () => ({})
-    },
-  },
-  data () {
-    return {
-      value: undefined,
-      remoteOptions: [],
-      // 是否更新 发起请求的标志
-      updateFlg: true,
-      loading: false,
-      pageNum: 1,
-      pages: 0
-    }
-  },
-  computed: {
-    compoundSelectOptions () {
-      const { remoteOptions, staticOptions, filterVals } = this
-      // 当前opts
-      const _compoundOptions = staticOptions.concat(remoteOptions)
-      // 筛选参数 keys 集合
-      const filterValsKeys = Object.keys(filterVals)
-      // 过滤数组 筛选出filter所标识的options
-      return filterValsKeys.length ? _compoundOptions.filter(option => {
-        // 符合筛选条件(并集)则返回true
-        return filterValsKeys.every(key => option[key] === filterVals[key])
-      }) : _compoundOptions
-    }
-  },
-  watch: {
-    value (newVal) {
-      this.$emit('recieveRemoteSelectValue', {
-        [this.prop]: newVal
-      })
-    },
-    remoteParams () {
-      // 关联参数值发生改变 触发请求
-      Object.assign(this, {
-        value: undefined,
-        remoteOptions: [],
-        updateFlg: true
-      })
-    },
-    relativeFilter () {
-      this.value = undefined
-    },
-    parent (newval, oldval) {
-      const { paramProps, remoteParamsChange } = this
-      // 监听forms params 变化，将兄弟formitem 关联起来
-      // 被关联项改变，重置关联项的值
-      paramProps.some(({ prop }) => newval[prop] !== oldval[prop]) && remoteParamsChange()
-    }
-  },
-  created () {
-    this.autoget && this.getRemoteData()
-  },
-  methods: {
-    remoteParamsChange () {
-      const { remoteParams, paramProps, parent } = this
-
-      const _privateRemoteParams = { ...remoteParams }
-      paramProps.forEach(({ prop, paramkey }) => {
-        // 作为请求的参数
-        _privateRemoteParams[paramkey] = parent[prop]
-      })
-      this.privateRemoteParams = _privateRemoteParams
-    },
-    async getRemoteData () {
-      const { updateFlg, hostName, apiUrl, method, resultPath, remoteParams, labelkeyname, valuekeyname, autoget, pagination, pageNum, remoteOptions, pageNumKey, pagePath, paramProps, value } = this
-
-      if (!updateFlg) return
-
-      // 强关联项值为undefined 或者空 不请求
-      const strongRealtiveBool = paramProps.every(({ require, paramkey }) => {
-        return !require || remoteParams[paramkey] !== undefined && remoteParams[paramkey] !== ''
-      })
-      if (!strongRealtiveBool) return
-      // 参数
-      const _params = { ...remoteParams }
-      // 分页
-      pagination && Object.assign(_params, { [pageNumKey]: pageNum })
-      // 请求远程数据
-      this.loading = true
-      const res = await httpService.accessAPI({ hostName, apiUrl, method, params: _params })
-      // 分页
-      const pages = pagination ? parsePath(res, pagePath, 0) : 0
-      // 数据
-      const result = parsePath(res, resultPath, [])
-      // 格式化参数
-      const dataList = result.map(item => {
-        return {
-          ...item,
-          label: item[labelkeyname],
-          value: item[valuekeyname]
+  export default {
+    name: 'Remoteselect',
+    props: {
+      ...formItemProps,
+      relativeFilter: {
+        type: Object,
+        default: () => {
+          return {}
         }
-      }).concat(remoteOptions)
-      // 主动更新情况 设置值为第一项
-      const nVal = autoget && remoteOptions.length ? dataList[0].value : value
-      // 标识重置
-      Object.assign(this, {
-        pages,
-        remoteOptions,
-        value: nVal,
-        updateFlg: false,
-        loading: false
-      })
+      }
     },
-    reset () {
-      this.value = undefined
+    data () {
+      return {
+        value: undefined,
+        selectOptions: [],
+        // 是否更新 发起请求的标志
+        updateFlg: true,
+        loading: false,
+        pageNum: 1,
+        pages: 0
+      }
     },
-    /** *******************************
-     ** Fn: handleScroll
-     ** Intro: 处理滚动行为
-     ** @params: direction 为true代表向下滚动,为false代表向上滚动
-     *********************************/
-    handleScroll (direction) {
-      if (!direction) return
-      // 请求下一页的数据
-      let { pages, pageNum, getRemoteData } = this
-      // 最后一页
-      if (pageNum > --pages) return
-      // 翻页
-      Object.assign(this, {
-        pageNum: ++pageNum,
-        updateFlg: true
-      })
-      // 请求数据
-      getRemoteData()
+    computed: {
+      filterObj () {
+        const { staticFilter, relativeFilter } = this
+        return Object.assign(staticFilter, relativeFilter)
+      },
+      compoundSelectOptions () {
+        const { selectOptions, staticOptions, filterObj, relativeProp } = this
+        let _compoundOptions = staticOptions.concat(selectOptions)
+        if (relativeProp && relativeProp.length) {
+          Object.keys(filterObj).forEach(item => {
+            debugger
+            if (relativeProp[relativeProp.map(vv => vv.filterkey).indexOf(item)].require || filterObj[item] !== undefined) {
+              _compoundOptions = _compoundOptions.filter(opt => opt[item] === filterObj[item])
+            }
+          })
+        }
+        return _compoundOptions
+      }
+    },
+    watch: {
+      value (newval) {
+        const { prop } = this
+        const obj = {}
+        obj[prop] = newval
+        this.$emit('recieveRemoteSelectValue', obj)
+      },
+      remoteParams () {
+        this.value = undefined
+        this.selectOptions = []
+        // 关联参数值发生改变 触发请求
+        this.updateFlg = true
+      },
+      relativeFilter () {
+        this.value = undefined
+      }
+    },
+    created () {
+      this.autoget && this.getRemoteData()
+    },
+    methods: {
+      async getRemoteData () {
+        const { updateFlg, hostName, apiUrl, method, resultPath, remoteParams, labelkeyname, valuekeyname, autoget, pagination, pageNum, selectOptions, pageNumKey, pagePath, relativeProp } = this
+
+        if (!updateFlg) return
+
+        if (relativeProp && relativeProp.length) {
+          // 强关联项值为undefined 或者空 不请求
+          const strongRealtiveBool = relativeProp.every(item => {
+            const { require, paramkey } = item
+            if (require) {
+              return !(remoteParams[paramkey] === undefined || remoteParams[paramkey] === '')
+            }
+            return true
+          })
+          if (!strongRealtiveBool) return
+        }
+
+        const _params = Object.assign({}, remoteParams)
+        if (pagination) {
+          Object.assign(_params, { [pageNumKey]: pageNum })
+        }
+
+        this.loading = true
+        const res = await httpService.accessAPI({ hostName, apiUrl, method, params: _params })
+        this.loading = false
+
+        if (pagination) {
+          let pages = res
+          pagePath.forEach(item => {
+            pages = pages[item]
+          })
+          this.pages = pages
+        }
+
+        let result = res
+        // debugger
+        // 数据位置
+        resultPath.forEach(item => {
+          result = result[item]
+        })
+        if (!result) return
+        this.selectOptions = result.map(item => {
+          return {
+            ...item,
+            label: item[labelkeyname],
+            value: item[valuekeyname]
+          }
+        }).concat(selectOptions)
+        if (autoget) {
+          // 主动更新情况 设置值为第一项
+          this.value = this.selectOptions[0].value
+        }
+        this.updateFlg = false
+      },
+      reset () {
+        this.value = undefined
+      },
+      /** *******************************
+       ** Fn: handleScroll
+       ** Intro: 处理滚动行为
+       ** @params: direction 为true代表向下滚动,为false代表向上滚动
+       *********************************/
+      handleScroll (direction) {
+        if (direction) {
+          // 请求下一页的数据
+          const { pages } = this
+          this.pageNum = ++this.pageNum
+          if (this.pageNum > pages) return
+          this.updateFlg = true
+          this.getRemoteData()
+        }
+      }
     }
   }
-}
 
 </script>
