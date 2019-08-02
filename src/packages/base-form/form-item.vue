@@ -143,158 +143,158 @@
 </template>
 
 <script>
-import { formItemProps } from './props'
-import remoteSelect from './form-item-remoteselect'
-import httpService from '../../utils/httpService'
-import { deepCopy, parsePath, filterSelectFunc } from '../../utils/common'
+  import { formItemProps } from './props'
+  import remoteSelect from './form-item-remoteselect'
+  import httpService from '../../utils/httpService'
+  import { deepCopy, parsePath, filterSelectFunc } from '../../utils/common'
 
-export default {
-  name: 'FormItem',
-  components: {
-    remoteSelect
-  },
-  props: formItemProps,
-  data () {
-    const { relativeProp = [] } = this
-    // 拆分
-    const filterProps = [], paramProps = []
-    relativeProp.forEach(props => {
-      const { paramkey, filterkey } = props
-      paramkey !== undefined && paramProps.push(props)
-      filterkey !== undefined && filterProps.push(props)
-    })
-
-    return {
-      loading: false,
-      value: undefined,
-      relativeFilter: {},
-      // 筛选参数列表
-      filterProps,
-      // 动态请求参数列表
-      paramProps
-    }
-  },
-  computed: {
-    prependSlot () {
-      return this.filterSlot('prepend')
+  export default {
+    name: 'FormItem',
+    components: {
+      remoteSelect
     },
-    appendSlot () {
-      return this.filterSlot('append')
-    },
-    realprop () {
-      const { prop } = this
-      return Array.isArray(prop) ? prop[0] : prop
-    },
-    realRules () {
-      return this.generateRules()
-    },
-    // 格式化placeholder
-    fmtPlaceholder () {
-      const { placeholder, itemType } = this
-      return placeholder === undefined ? itemType === 'input' ? '请输入' : '请选择' : placeholder
-    },
-    // 筛选条件
-    filterVals() {
-      const { filterProps, staticFilter, parent } = this
-      // 筛选参数 当前值
-      const res = { ...staticFilter }
-      // 过滤配置 筛选出有意义的标识
-      filterProps.forEach(({ prop, filterkey, require }) => {
-        // 标识val
-        const filterVal = parent[prop];
-        // 赋值
-        (filterVal !== undefined || require) && (res[filterkey] = filterVal)
+    props: formItemProps,
+    data() {
+      const { relativeProp = [] } = this
+      // 拆分
+      const filterProps = [], paramProps = []
+      relativeProp.forEach(props => {
+        const { paramkey, filterkey } = props
+        paramkey !== undefined && paramProps.push(props)
+        filterkey !== undefined && filterProps.push(props)
       })
-      // 如果有改变则返回新的筛选条件
-      return res
+
+      return {
+        loading: false,
+        value: undefined,
+        relativeFilter: {},
+        // 筛选参数列表
+        filterProps,
+        // 动态请求参数列表
+        paramProps
+      }
     },
-    optionsFmtRes() {
-      const { options, labelkeyname, valuekeyname, filterVals } = this
-      // 返回过滤后的结果
-      return filterSelectFunc(options, labelkeyname, valuekeyname, filterVals)
-    }
-  },
-  watch: {
-    value (newVal) {
-      const { prop } = this
-      const obj = {}
-      if (Array.isArray(prop)) {
-        prop.forEach((vv, i) => {
-          obj[vv] = newVal[i]
+    computed: {
+      prependSlot() {
+        return this.filterSlot('prepend')
+      },
+      appendSlot() {
+        return this.filterSlot('append')
+      },
+      realprop() {
+        const { prop } = this
+        return Array.isArray(prop) ? prop[0] : prop
+      },
+      realRules() {
+        return this.generateRules()
+      },
+      // 格式化placeholder
+      fmtPlaceholder() {
+        const { placeholder, itemType } = this
+        return placeholder === undefined ? itemType === 'input' ? '请输入' : '请选择' : placeholder
+      },
+      // 筛选条件
+      filterVals() {
+        const { filterProps, staticFilter, parent } = this
+        // 筛选参数 当前值
+        const res = { ...staticFilter }
+        // 过滤配置 筛选出有意义的标识
+        filterProps.forEach(({ prop, filterkey, require }) => {
+          // 标识val
+          const filterVal = parent[prop];
+          // 赋值
+          (filterVal !== undefined || require) && (res[filterkey] = filterVal)
         })
-      } else {
-        obj[prop] = newVal
-      }
-      this.$emit('recieveFormItemValue', obj)
-    }
-  },
-  created () {
-    this.initVal()
-  },
-  methods: {
-    // slot类型区分
-    filterSlot (type) {
-      const { slots } = this
-      return slots && slots.length ? slots.filter(item => item.type === type) : []
-    },
-    // 数组数据处理
-    handleArrItem (val, alternate) {
-      return val === undefined ? alternate : val
-    },
-    // 初始化value
-    initVal () {
-      const { defaultValue, itemCur, itemType } = this
-      let _value = itemCur === undefined ? defaultValue : itemCur
-      // checkbox 初始值不可以为undefined
-      this.value = itemType === 'checkbox' && _value === undefined ? [] : _value
-    },
-    // 重置val
-    reset (type) {
-      const { itemType, prop } = this
-      if (itemType === 'remoteselect') {
-        this.$refs[`${prop}_remoteSelect`].reset()
-      }
-      if (type === 'clear') {
-        this.value = Array.isArray(prop) ? ['', ''] : itemType === 'checkbox' ? [] : undefined
-      } else {
-        this.initVal()
+        // 如果有改变则返回新的筛选条件
+        return res
+      },
+      optionsFmtRes() {
+        const { options, labelkeyname, valuekeyname, filterVals } = this
+        // 返回过滤后的结果
+        return filterSelectFunc(options, labelkeyname, valuekeyname, filterVals)
       }
     },
-    // 接收remoteSelect 值
-    recieveRemoteSelectValue (obj) {
-      this.$emit('recieveFormItemValue', obj)
+    watch: {
+      value(newVal) {
+        const { prop } = this
+        const obj = {}
+        if (Array.isArray(prop)) {
+          prop.forEach((vv, i) => {
+            obj[vv] = newVal[i]
+          })
+        } else {
+          obj[prop] = newVal
+        }
+        this.$emit('recieveFormItemValue', obj)
+      }
     },
-    // change emit
-    handleChange (value) {
-      const { change, formrefname } = this
-      typeof change === 'function' && change(value, formrefname)
+    created() {
+      this.initVal()
     },
-    // 唯一性验证方法
-    validateUniqueCode ({ hostName, apiUrl, method, message, paramkey, statusPath, messagePath }) {
-      return async (rule, value, callback, sourse) => {
-        const params = {}
-        paramkey !== undefined ? Object.assign(params, { [paramkey]: value }) : Object.assign(params, sourse)
+    methods: {
+      // slot类型区分
+      filterSlot(type) {
+        const { slots } = this
+        return slots && slots.length ? slots.filter(item => item.type === type) : []
+      },
+      // 数组数据处理
+      handleArrItem(val, alternate) {
+        return val === undefined ? alternate : val
+      },
+      // 初始化value
+      initVal() {
+        const { defaultValue, itemCur, itemType } = this
+        let _value = itemCur === undefined ? defaultValue : itemCur
+        // checkbox 初始值不可以为undefined
+        this.value = itemType === 'checkbox' && _value === undefined ? [] : _value
+      },
+      // 重置val
+      reset(type) {
+        const { itemType, prop } = this
+        if (itemType === 'remoteselect') {
+          this.$refs[`${prop}_remoteSelect`].reset()
+        }
+        if (type === 'clear') {
+          this.value = Array.isArray(prop) ? ['', ''] : itemType === 'checkbox' ? [] : undefined
+        } else {
+          this.initVal()
+        }
+      },
+      // 接收remoteSelect 值
+      recieveRemoteSelectValue(obj) {
+        this.$emit('recieveFormItemValue', obj)
+      },
+      // change emit
+      handleChange(value) {
+        const { change, formrefname } = this
+        typeof change === 'function' && change(value, formrefname)
+      },
+      // 唯一性验证方法
+      validateUniqueCode({ hostName, apiUrl, method, message, paramkey, statusPath, messagePath }) {
+        return async (rule, value, callback, sourse) => {
+          const params = {}
+          paramkey !== undefined ? Object.assign(params, { [paramkey]: value }) : Object.assign(params, sourse)
 
-        this.loading = true
-        const res = await httpService.accessAPI({ hostName, apiUrl, method, params })
-        this.loading = false
+          this.loading = true
+          const res = await httpService.accessAPI({ hostName, apiUrl, method, params })
+          this.loading = false
 
-        const status = parsePath(res, statusPath)
-        // 远程验证
-        status ? callback() : callback(new Error(parsePath(res, messagePath, message)))
+          const status = parsePath(res, statusPath)
+          // 远程验证
+          status ? callback() : callback(new Error(parsePath(res, messagePath, message)))
+        }
+      },
+      // 生成唯一性验证 rules
+      generateRules() {
+        const { rules, checkApi, checkApi: { trigger } = {}, validateUniqueCode } = this
+        const realRules = deepCopy(rules)
+        checkApi && realRules.push({
+          validator: validateUniqueCode(checkApi), trigger
+        })
+        return realRules
       }
-    },
-    // 生成唯一性验证 rules
-    generateRules () {
-      const { rules, checkApi, checkApi: { trigger } = {}, validateUniqueCode } = this
-      const realRules = deepCopy(rules)
-      checkApi && realRules.push({
-        validator: validateUniqueCode(checkApi), trigger
-      })
-      return realRules
     }
   }
-}
 </script>
 <style>
   .inputnumber {
