@@ -55,7 +55,7 @@ export default {
   computed: {
     // 有效参数
     fmtParams() {
-      const { paramProps, remoteParams, parent, paramCache, clear } = this
+      const { paramProps, remoteParams, parent, paramCache } = this
       // 监听forms params 变化，将兄弟formitem 关联起来
       // 被关联项改变，重置关联项的值
       const _privateRemoteParams = { ...remoteParams }
@@ -66,7 +66,10 @@ export default {
         // return require && (paramVal === undefined || paramVal === '')
       })
       // 有变化则清空
-      !isObjectValueEqual(_privateRemoteParams, paramCache) && clear()
+      !isObjectValueEqual(_privateRemoteParams, paramCache) && Object.assign(this, {
+        value: undefined,
+        remoteOptions: []
+      })
       // 任意一个强关联项值为undefined 或空、或参数对象无变化时 不请求数据
       return _privateRemoteParams
     },
@@ -89,7 +92,8 @@ export default {
     this.autoget && this.getRemoteData()
   },
   methods: {
-    abledReq() {
+    // 是否需要请求
+    isNeedReq() {
       const { paramProps, fmtParams, paramCache } = this
       // 无更新 返回false
       if(isObjectValueEqual(fmtParams, paramCache))
@@ -105,9 +109,9 @@ export default {
       const {
         updateFlg, hostName, apiUrl, method, resultPath, labelkeyname,
         valuekeyname, autoget, pagination, pageNum, remoteOptions, pageNumKey,
-        pagePath, value, fmtParams, abledReq } = this
+        pagePath, value, fmtParams, isNeedReq } = this
       // 正在执行 | 无更新 | 强关联项为空 时，直接返回
-      if (!updateFlg || !abledReq()) return
+      if (!updateFlg || !isNeedReq()) return
 
       // 请求远程数据
       Object.assign(this, {
@@ -137,12 +141,6 @@ export default {
         value: nVal,
         updateFlg: false,
         loading: false
-      })
-    },
-    clear () {
-      Object.assign(this, {
-        value: undefined,
-        remoteOptions: []
       })
     },
     reset () {
